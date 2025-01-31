@@ -11,6 +11,28 @@
         width: 100%;
         margin-bottom: 20px;
     }
+
+    /* Style untuk select risk level */
+    #risk_level {
+        padding: 8px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    #risk_level.low-risk {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+    }
+
+    #risk_level.medium-risk {
+        background-color: #ffe0b2;
+        color: #ef6c00;
+    }
+
+    #risk_level.high-risk {
+        background-color: #ffcdd2;
+        color: #c62828;
+    }
 </style>
 @endpush
 
@@ -25,28 +47,27 @@
                 <div class="card-body">
                     <div id="map" style="height: 400px;"></div>
                     
-                    <!-- Pindahkan Latitude Longitude ke bawah peta -->
                     <div class="row mt-2 mb-4">
                         <div class="col">
                             <label for="latitude" class="form-label">Latitude</label>
-                            <input type="text" class="form-control" id="latitude" value="{{ $location->latitude }}" readonly>
+                            <input type="text" class="form-control" id="latitude" name="latitude" readonly value="{{ $location->latitude }}">
                         </div>
                         <div class="col">
                             <label for="longitude" class="form-label">Longitude</label>
-                            <input type="text" class="form-control" id="longitude" value="{{ $location->longitude }}" readonly>
+                            <input type="text" class="form-control" id="longitude" name="longitude" readonly value="{{ $location->longitude }}">
                         </div>
                     </div>
 
-                    <form action="/map/{{ $location->id }}" method="POST">
+                    <form action="{{ route('map.update', $location->id) }}" method="POST">
                         @csrf
                         @method('PUT')
-                        <!-- Hidden inputs untuk lat/lng -->
+                        
                         <input type="hidden" name="latitude" id="form_latitude" value="{{ $location->latitude }}">
                         <input type="hidden" name="longitude" id="form_longitude" value="{{ $location->longitude }}">
                         
                         <div class="mb-3">
                             <label for="name" class="form-label">Nama Lokasi</label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ $location->name }}" required>
+                            <input type="text" class="form-control" id="name" name="name" required value="{{ $location->name }}">
                         </div>
 
                         <div class="mb-3">
@@ -56,7 +77,7 @@
 
                         <div class="mb-3">
                             <label for="address" class="form-label">Alamat</label>
-                            <input type="text" class="form-control" id="address" name="address" value="{{ $location->address }}" required>
+                            <input type="text" class="form-control" id="address" name="address" required value="{{ $location->address }}">
                         </div>
 
                         <div class="row mb-3">
@@ -73,22 +94,28 @@
                         <div class="mb-3">
                             <label for="risk_level" class="form-label">Tingkat Risiko</label>
                             <select class="form-select" id="risk_level" name="risk_level" required>
-                                <option value="low" {{ $location->risk_level == 'low' ? 'selected' : '' }}>Rendah</option>
-                                <option value="medium" {{ $location->risk_level == 'medium' ? 'selected' : '' }}>Sedang</option>
-                                <option value="high" {{ $location->risk_level == 'high' ? 'selected' : '' }}>Tinggi</option>
+                                <option value="low" style="background-color: #c8e6c9; color: #2e7d32;" {{ $location->risk_level == 'low' ? 'selected' : '' }}>Rendah</option>
+                                <option value="medium" style="background-color: #ffe0b2; color: #ef6c00;" {{ $location->risk_level == 'medium' ? 'selected' : '' }}>Sedang</option>
+                                <option value="high" style="background-color: #ffcdd2; color: #c62828;" {{ $location->risk_level == 'high' ? 'selected' : '' }}>Tinggi</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label for="incident_time" class="form-label">Waktu Kejadian</label>
-                            <input type="datetime-local" class="form-control" id="incident_time" name="incident_time" 
-                                   value="{{ date('Y-m-d\TH:i', strtotime($location->incident_time)) }}" required>
+                            <div class="input-group">
+                                <input type="datetime-local" 
+                                       class="form-control" 
+                                       id="incident_time" 
+                                       name="incident_time" 
+                                       required 
+                                       value="{{ date('Y-m-d\TH:i', strtotime($location->incident_time)) }}">
+                                <!-- Tombol akan ditambahkan melalui JavaScript di sini -->
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="incident_count" class="form-label">Jumlah Kejadian</label>
-                            <input type="number" class="form-control" id="incident_count" name="incident_count" 
-                                   value="{{ $location->incident_count }}" min="0" required>
+                            <input type="number" class="form-control" id="incident_count" name="incident_count" value="{{ $location->incident_count }}" min="0" required>
                         </div>
 
                         <input type="hidden" name="is_active" value="1">
@@ -115,6 +142,29 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Fungsi untuk mendapatkan waktu saat ini dalam format yang sesuai
+        function getCurrentDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // Tambahkan tombol Hari Ini ke input group
+        const incidentTimeInput = document.getElementById('incident_time');
+        const todayBtn = document.createElement('button');
+        todayBtn.type = 'button';
+        todayBtn.className = 'btn btn-secondary';
+        todayBtn.innerHTML = '<i class="fas fa-calendar-day"></i> Hari Ini';
+        todayBtn.onclick = function() {
+            incidentTimeInput.value = getCurrentDateTime();
+        };
+        
+        incidentTimeInput.parentNode.appendChild(todayBtn);
+
         var map = L.map('map').setView([{{ $location->latitude }}, {{ $location->longitude }}], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -124,6 +174,16 @@
         var marker = L.marker([{{ $location->latitude }}, {{ $location->longitude }}], {
             draggable: true
         }).addTo(map);
+
+        map.on('click', function(e) {
+            var clickedPosition = e.latlng;
+            
+            marker.setLatLng(clickedPosition);
+            
+            updateCoordinates(clickedPosition.lat, clickedPosition.lng);
+            
+            reverseGeocode(clickedPosition.lat, clickedPosition.lng);
+        });
 
         L.Control.geocoder({
             defaultMarkGeocode: false,
@@ -142,30 +202,27 @@
             map.setView(latlng, 16);
             updateCoordinates(latlng.lat, latlng.lng);
             
-            if (result.properties) {
-                if (result.properties.address) {
-                    var address = result.properties.address;
-                    
-                    document.getElementById('address').value = result.properties.display_name || '';
-                    
-                    var district = address.suburb || 
-                                 address.district || 
-                                 address.neighbourhood || 
-                                 address.subdistrict ||
-                                 address.city_district ||
-                                 address.county ||
-                                 '';
-                    
-                    document.getElementById('district').value = district;
-                    
-                    var city = address.city || 
-                             address.town || 
-                             address.municipality || 
-                             address.county ||
-                             '';
-                    
-                    document.getElementById('city').value = city;
-                }
+            if (result.properties && result.properties.address) {
+                var address = result.properties.address;
+                
+                document.getElementById('address').value = result.properties.display_name || '';
+                
+                var district = '';
+                if (address.suburb) district = address.suburb;
+                else if (address.district) district = address.district;
+                else if (address.neighbourhood) district = address.neighbourhood;
+                else if (address.subdistrict) district = address.subdistrict;
+                else if (address.city_district) district = address.city_district;
+                
+                document.getElementById('district').value = district;
+                
+                var city = '';
+                if (address.city) city = address.city;
+                else if (address.town) city = address.town;
+                else if (address.municipality) city = address.municipality;
+                else if (address.county) city = address.county;
+                
+                document.getElementById('city').value = city;
             }
         }).addTo(map);
 
@@ -176,10 +233,8 @@
         });
 
         function updateCoordinates(lat, lng) {
-            // Update display coordinates
             document.getElementById('latitude').value = lat.toFixed(8);
             document.getElementById('longitude').value = lng.toFixed(8);
-            // Update hidden form coordinates
             document.getElementById('form_latitude').value = lat.toFixed(8);
             document.getElementById('form_longitude').value = lng.toFixed(8);
         }
@@ -190,27 +245,13 @@
                 if (results && results.length > 0) {
                     var r = results[0];
                     if (r.properties && r.properties.address) {
-                        var address = r.properties.address;
-                        
                         document.getElementById('address').value = r.properties.display_name || '';
-                        
-                        var district = address.suburb || 
-                                     address.district || 
-                                     address.neighbourhood || 
-                                     address.subdistrict ||
-                                     address.city_district ||
-                                     address.county ||
-                                     '';
-                        
-                        document.getElementById('district').value = district;
-                        
-                        var city = address.city || 
-                                 address.town || 
-                                 address.municipality || 
-                                 address.county ||
-                                 '';
-                        
-                        document.getElementById('city').value = city;
+                        document.getElementById('district').value = r.properties.address.suburb || 
+                                                                  r.properties.address.district || 
+                                                                  r.properties.address.neighbourhood || '';
+                        document.getElementById('city').value = r.properties.address.city || 
+                                                              r.properties.address.town || 
+                                                              r.properties.address.municipality || '';
                     }
                 }
             });
@@ -219,6 +260,22 @@
         setTimeout(function() {
             map.invalidateSize();
         }, 100);
+
+        // Fungsi untuk mengupdate warna select
+        function updateSelectColor(value) {
+            const select = document.getElementById('risk_level');
+            select.classList.remove('low-risk', 'medium-risk', 'high-risk');
+            select.classList.add(`${value}-risk`);
+        }
+
+        // Set warna awal berdasarkan nilai yang ada
+        updateSelectColor('{{ $location->risk_level }}');
+
+        // Update warna saat nilai berubah
+        document.getElementById('risk_level').addEventListener('change', function(e) {
+            updateSelectColor(e.target.value);
+            marker.setIcon(riskIcons[e.target.value]);
+        });
     });
 </script>
 @endpush

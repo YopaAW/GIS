@@ -55,7 +55,8 @@ class LocationController extends Controller
      */
     public function edit($id)
     {
-        //
+        $location = Location::findOrFail($id);
+        return view('locations.edit', compact('location'));
     }
 
     /**
@@ -67,7 +68,25 @@ class LocationController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $location = Location::findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required',
+            'address' => 'required',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'district' => 'nullable',
+            'city' => 'nullable',
+            'risk_level' => 'required|in:low,medium,high',
+            'incident_time' => 'required|date',
+            'incident_count' => 'required|integer|min:0',
+            'description' => 'nullable',
+            'is_active' => 'boolean'
+        ]);
+
+        $location->update($validated);
+
+        return redirect('/map')->with('success', 'Lokasi berhasil diperbarui');
     }
 
     /**

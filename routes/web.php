@@ -19,7 +19,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/map', [LocationController::class, 'index']);
     Route::get('/map/create', [LocationController::class, 'create']);
     Route::post('/map', [LocationController::class, 'store']);
-    Route::get('/map/{location}/edit', [LocationController::class, 'edit']);
-    Route::put('/map/{location}', [LocationController::class, 'update']);
+    Route::get('/map/{id}/edit', [LocationController::class, 'edit'])->name('map.edit');
+    Route::put('/map/{id}', [LocationController::class, 'update'])->name('map.update');
     Route::delete('/map/{location}', [LocationController::class, 'destroy']);
 });

@@ -23,7 +23,7 @@
                         </div>
                     </div>
 
-                    <form action="/map" method="POST">
+                    <form action="{{ route('locations.store') }}" method="POST">
                         @csrf
                         <!-- Hidden inputs untuk lat/lng -->
                         <input type="hidden" name="latitude" id="form_latitude">
@@ -58,15 +58,22 @@
                         <div class="mb-3">
                             <label for="risk_level" class="form-label">Tingkat Risiko</label>
                             <select class="form-select" id="risk_level" name="risk_level" required>
-                                <option value="low">Rendah</option>
-                                <option value="medium">Sedang</option>
-                                <option value="high">Tinggi</option>
+                                <option value="low" style="background-color: #c8e6c9; color: #2e7d32;">Rendah</option>
+                                <option value="medium" style="background-color: #ffe0b2; color: #ef6c00;">Sedang</option>
+                                <option value="high" style="background-color: #ffcdd2; color: #c62828;">Tinggi</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label for="incident_time" class="form-label">Waktu Kejadian</label>
-                            <input type="datetime-local" class="form-control" id="incident_time" name="incident_time" required>
+                            <div class="input-group">
+                                <input type="datetime-local" 
+                                       class="form-control" 
+                                       id="incident_time" 
+                                       name="incident_time" 
+                                       required>
+                                <!-- Tombol akan ditambahkan melalui JavaScript di sini -->
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -80,7 +87,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Simpan
                             </button>
-                            <a href="/map" class="btn btn-secondary">
+                            <a href="{{ route('locations.index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Kembali
                             </a>
                         </div>
@@ -100,6 +107,47 @@
         width: 100%;
         margin-bottom: 20px;
     }
+
+    /* Styling untuk select risk level */
+    #risk_level option[value="high"] {
+        background-color: #ffcdd2;
+        color: #c62828;
+        font-weight: bold;
+    }
+
+    #risk_level option[value="medium"] {
+        background-color: #ffe0b2;
+        color: #ef6c00;
+        font-weight: bold;
+    }
+
+    #risk_level option[value="low"] {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+        font-weight: bold;
+    }
+
+    #risk_level {
+        padding: 8px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    /* Warna default untuk select */
+    #risk_level.low-risk {
+        background-color: #c8e6c9;
+        color: #2e7d32;
+    }
+
+    #risk_level.medium-risk {
+        background-color: #ffe0b2;
+        color: #ef6c00;
+    }
+
+    #risk_level.high-risk {
+        background-color: #ffcdd2;
+        color: #c62828;
+    }
 </style>
 @endpush
 
@@ -109,17 +157,70 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var map = L.map('map').setView([-7.983908, 112.621391], 13);
+        var map = L.map('map').setView([-6.5882, 110.6676], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        var marker = L.marker([-7.983908, 112.621391], {
-            draggable: true
+        // Definisikan icon untuk setiap tingkat risiko
+        var riskIcons = {
+            'high': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #ff4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            }),
+            'medium': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #ffa000; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            }),
+            'low': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #4caf50; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        };
+
+        var marker = L.marker([-6.5882, 110.6676], {
+            draggable: true,
+            icon: riskIcons['low'] // default icon
         }).addTo(map);
 
-        // Update control pencarian dengan data lengkap
+        // Fungsi untuk mengupdate warna select
+        function updateSelectColor(value) {
+            const select = document.getElementById('risk_level');
+            select.classList.remove('low-risk', 'medium-risk', 'high-risk');
+            select.classList.add(`${value}-risk`);
+        }
+
+        // Set warna awal
+        updateSelectColor('low');
+
+        // Update warna saat nilai berubah
+        document.getElementById('risk_level').addEventListener('change', function(e) {
+            updateSelectColor(e.target.value);
+            marker.setIcon(riskIcons[e.target.value]);
+        });
+
+        // Tambahkan event click pada map
+        map.on('click', function(e) {
+            var clickedPosition = e.latlng;
+            
+            // Pindahkan marker ke posisi yang diklik
+            marker.setLatLng(clickedPosition);
+            
+            // Update koordinat
+            updateCoordinates(clickedPosition.lat, clickedPosition.lng);
+            
+            // Lakukan reverse geocoding untuk mendapatkan alamat
+            reverseGeocode(clickedPosition.lat, clickedPosition.lng);
+        });
+
+        // Kode yang sudah ada untuk pencarian lokasi
         L.Control.geocoder({
             defaultMarkGeocode: false,
             position: 'topleft',
@@ -141,33 +242,30 @@
             updateCoordinates(latlng.lat, latlng.lng);
             
             // Update alamat dan lokasi
-            if (result.properties) {
-                if (result.properties.address) {
-                    var address = result.properties.address;
-                    
-                    // Update alamat lengkap
-                    document.getElementById('address').value = result.properties.display_name || '';
-                    
-                    // Update kecamatan - coba berbagai kemungkinan field
-                    var district = address.suburb || 
-                                 address.district || 
-                                 address.neighbourhood || 
-                                 address.subdistrict ||
-                                 address.city_district ||
-                                 address.county ||
-                                 ''; // default ke string kosong jika tidak ada
-                    
-                    document.getElementById('district').value = district;
-                    
-                    // Update kota
-                    var city = address.city || 
-                             address.town || 
-                             address.municipality || 
-                             address.county ||
-                             '';
-                    
-                    document.getElementById('city').value = city;
-                }
+            if (result.properties && result.properties.address) {
+                var address = result.properties.address;
+                
+                // Update alamat lengkap
+                document.getElementById('address').value = result.properties.display_name || '';
+                
+                // Update kecamatan dengan pengecekan yang lebih baik
+                var district = '';
+                if (address.suburb) district = address.suburb;
+                else if (address.district) district = address.district;
+                else if (address.neighbourhood) district = address.neighbourhood;
+                else if (address.subdistrict) district = address.subdistrict;
+                else if (address.city_district) district = address.city_district;
+                
+                document.getElementById('district').value = district;
+                
+                // Update kota dengan pengecekan yang lebih baik
+                var city = '';
+                if (address.city) city = address.city;
+                else if (address.town) city = address.town;
+                else if (address.municipality) city = address.municipality;
+                else if (address.county) city = address.county;
+                
+                document.getElementById('city').value = city;
             }
         }).addTo(map);
 
@@ -189,7 +287,7 @@
             document.getElementById('form_longitude').value = lng.toFixed(8);
         }
 
-        // Fungsi untuk reverse geocoding
+        // Perbaikan fungsi reverseGeocode
         function reverseGeocode(lat, lng) {
             var geocoder = L.Control.Geocoder.nominatim();
             geocoder.reverse({lat: lat, lng: lng}, map.getZoom(), function(results) {
@@ -200,23 +298,22 @@
                         
                         document.getElementById('address').value = r.properties.display_name || '';
                         
-                        // Update kecamatan dengan multiple fallbacks
-                        var district = address.suburb || 
-                                     address.district || 
-                                     address.neighbourhood || 
-                                     address.subdistrict ||
-                                     address.city_district ||
-                                     address.county ||
-                                     '';
+                        // Update kecamatan dengan pengecekan yang lebih baik
+                        var district = '';
+                        if (address.suburb) district = address.suburb;
+                        else if (address.district) district = address.district;
+                        else if (address.neighbourhood) district = address.neighbourhood;
+                        else if (address.subdistrict) district = address.subdistrict;
+                        else if (address.city_district) district = address.city_district;
                         
                         document.getElementById('district').value = district;
                         
-                        // Update kota dengan multiple fallbacks
-                        var city = address.city || 
-                                 address.town || 
-                                 address.municipality || 
-                                 address.county ||
-                                 '';
+                        // Update kota dengan pengecekan yang lebih baik
+                        var city = '';
+                        if (address.city) city = address.city;
+                        else if (address.town) city = address.town;
+                        else if (address.municipality) city = address.municipality;
+                        else if (address.county) city = address.county;
                         
                         document.getElementById('city').value = city;
                     }
@@ -224,8 +321,31 @@
             });
         }
 
-        // Set koordinat awal
-        updateCoordinates(-7.983908, 112.621391);
+        // Set koordinat awal ke form
+        updateCoordinates(-6.5882, 110.6676);
+
+        // Fungsi untuk mendapatkan waktu saat ini dalam format yang sesuai
+        function getCurrentDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // Tambahkan tombol Hari Ini ke input group
+        const incidentTimeInput = document.getElementById('incident_time');
+        const todayBtn = document.createElement('button');
+        todayBtn.type = 'button';
+        todayBtn.className = 'btn btn-secondary';
+        todayBtn.innerHTML = '<i class="fas fa-calendar-day"></i> Hari Ini';
+        todayBtn.onclick = function() {
+            incidentTimeInput.value = getCurrentDateTime();
+        };
+        
+        incidentTimeInput.parentNode.appendChild(todayBtn);
     });
 </script>
 @endpush

@@ -101,7 +101,7 @@
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script>
-    var map = L.map('map').setView([-7.983908, 112.621391], 12);
+    var map = L.map('map').setView([-6.5882, 110.6676], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -123,12 +123,37 @@
     }).addTo(map);
 
     function addMarker(lat, lng, location) {
-        var marker = L.marker([lat, lng]);
+        // Definisikan icon untuk setiap tingkat risiko
+        var riskIcons = {
+            'high': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #ff4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            }),
+            'medium': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #ffa000; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            }),
+            'low': L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style='background-color: #4caf50; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);'></div>`,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        };
+
+        // Buat marker dengan icon sesuai tingkat risiko
+        var marker = L.marker([lat, lng], {
+            icon: riskIcons[location.risk_level]
+        });
         
         var riskStyle = {
-            'high': { bg: '#ffcdd2', label: 'Tinggi' },    
-            'medium': { bg: '#ffe0b2', label: 'Sedang' },  
-            'low': { bg: '#c8e6c9', label: 'Rendah' }      
+            'high': { bg: '#ffcdd2', label: 'Tinggi', color: '#ff4444' },    
+            'medium': { bg: '#ffe0b2', label: 'Sedang', color: '#ffa000' },  
+            'low': { bg: '#c8e6c9', label: 'Rendah', color: '#4caf50' }      
         };
         
         var style = riskStyle[location.risk_level];
@@ -144,26 +169,26 @@
         
         var popupContent = `
             <div style="min-width: 300px;">
-                <h6 class="mb-3">${location.name}</h6>
+                <h6 class="mb-3" style="color: #333;">${location.name}</h6>
                 <table class="table table-sm table-bordered">
                     <tr>
-                        <th style="width: 40%">Alamat</th>
+                        <th style="width: 40%; background-color: #f8f9fa;">Alamat</th>
                         <td>${location.address || '-'}</td>
                     </tr>
                     <tr>
-                        <th>Kecamatan</th>
+                        <th style="background-color: #f8f9fa;">Kecamatan</th>
                         <td>${location.district || '-'}</td>
                     </tr>
                     <tr>
-                        <th>Kota</th>
+                        <th style="background-color: #f8f9fa;">Kota</th>
                         <td>${location.city || '-'}</td>
                     </tr>
                     <tr>
-                        <th>Tingkat Risiko</th>
+                        <th style="background-color: #f8f9fa;">Tingkat Risiko</th>
                         <td>
                             <span style="
                                 background-color: ${style.bg}; 
-                                color: #000000; 
+                                color: ${style.color}; 
                                 padding: 2px 6px; 
                                 border-radius: 3px;
                                 font-size: 0.9em;
@@ -173,15 +198,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>Waktu Kejadian</th>
+                        <th style="background-color: #f8f9fa;">Waktu Kejadian</th>
                         <td>${incidentDate}</td>
                     </tr>
                     <tr>
-                        <th>Jumlah Kejadian</th>
+                        <th style="background-color: #f8f9fa;">Jumlah Kejadian</th>
                         <td>${location.incident_count} kali</td>
                     </tr>
                     <tr>
-                        <th>Deskripsi</th>
+                        <th style="background-color: #f8f9fa;">Deskripsi</th>
                         <td>${location.description || '-'}</td>
                     </tr>
                 </table>
@@ -240,19 +265,53 @@
             form.submit();
         }
     }
+
+    // Tambahkan legenda
+    var legend = L.control({ position: 'bottomright' });
+    
+    legend.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'info legend');
+        div.style.backgroundColor = 'white';
+        div.style.padding = '10px';
+        div.style.borderRadius = '5px';
+        div.style.boxShadow = '0 0 4px rgba(0,0,0,0.2)';
+        
+        div.innerHTML = '<h6 style="margin: 0 0 5px 0;">Tingkat Risiko</h6>';
+        div.innerHTML += '<div style="display: flex; align-items: center; margin: 3px 0;"><div style="background-color: #ff4444; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>Tinggi</div>';
+        div.innerHTML += '<div style="display: flex; align-items: center; margin: 3px 0;"><div style="background-color: #ffa000; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>Sedang</div>';
+        div.innerHTML += '<div style="display: flex; align-items: center; margin: 3px 0;"><div style="background-color: #4caf50; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>Rendah</div>';
+        
+        return div;
+    };
+    
+    legend.addTo(map);
 </script>
 
 <style>
     .custom-popup .leaflet-popup-content {
         margin: 12px;
+        background-color: white;
+    }
+    .custom-popup .leaflet-popup-content-wrapper {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 3px 14px rgba(0,0,0,0.2);
     }
     .custom-popup .table {
         margin-bottom: 0;
     }
     .custom-popup .table th,
     .custom-popup .table td {
-        padding: 4px 8px;
+        padding: 6px 8px;
         font-size: 0.9em;
+        border: 1px solid #dee2e6;
+    }
+    .custom-popup .table th {
+        font-weight: 600;
+    }
+    .custom-popup .btn-group .btn {
+        padding: 4px 8px;
+        font-size: 0.85em;
     }
     /* Styling untuk control pencarian */
     .leaflet-control-geocoder {
